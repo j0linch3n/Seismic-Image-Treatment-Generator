@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Image Treatment Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout matches the Type Expression Generator: stone preview stage left, 340px control panel right. Dark interface only. */
+:root {
+  color-scheme: dark;
+  --bg: #171318;
+  --panel: #171318;
+  --raise: #221e24;
+  --raise-2: #2b262e;
+  --ink: #f4f1ee;
+  --muted: #a8a19c;
+  --faint: #6e6770;
+  --line: #2e2931;
+  --accent: #ccff80;
+  --accent-ink: #171318;
+  --accent-soft: rgba(204, 255, 128, .12);
+  --stage: #d4cdc6;
+  --stage-ink: #171318;
+  --dot: #c3bbb3;
+  --danger: #ff5a46;
+  --display: "Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html { height: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+  font: 14px/1.4 var(--ui); overflow: auto; -webkit-font-smoothing: antialiased;
+}
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; height: 100%; padding: 8px; gap: 8px; }
+.panel { background: var(--panel); display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+.top { padding: 28px 20px 22px; border-bottom: 1px solid var(--line); }
+.blk { padding: 18px 20px 20px; border-bottom: 1px solid var(--line); }
+.blk h2 { color: var(--muted); font: 600 11px/1.2 var(--ui); letter-spacing: .08em; text-transform: uppercase; margin: 0 0 12px; }
+.foot { margin-top: auto; padding: 16px 20px 20px; position: sticky; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); }
+.foot .row { display: grid; grid-template-columns: 1fr 1fr; }
+.foot .btn { padding: 10px 12px; }
+h1 { font: 600 22px/1.2 var(--ui); color: var(--muted); margin: 0 0 4px; }
+.lede { margin: 0; color: var(--muted); font-size: 13px; }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn {
+  border: 1px solid transparent; background: var(--raise); border-radius: 8px;
+  padding: 8px 12px; font-weight: 500; font-size: 13px; transition: border-color .12s, background .12s, filter .12s;
+}
+.btn:hover { background: var(--raise-2); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; letter-spacing: -.01em; }
+.btn.primary:hover { background: var(--accent); filter: brightness(1.06); }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+.hint { color: var(--faint); font-size: 12px; margin: 10px 0 0; }
+.toast { font-size: 12.5px; color: var(--muted); min-height: 18px; margin: 0 0 10px; }
+
+/* tile buttons (mode, texture, presets) */
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tile {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px 6px 7px; border: 1px solid transparent; background: var(--raise);
+  border-radius: 10px; font-size: 12px; font-weight: 500; color: var(--muted); text-align: center; line-height: 1.2;
+}
+.seg .tile { padding: 9px 6px; font-size: 13px; }
+.tile:hover { background: var(--raise-2); }
+.tile[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.presets { display: grid; gap: 8px; }
+.presets.duo { grid-template-columns: repeat(2, 1fr); }
+.presets.mono { grid-template-columns: repeat(4, 1fr); }
+.sw { width: 100%; height: 28px; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.roles { width: 100%; display: grid; grid-template-columns: 1fr 1fr; margin-top: -2px; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
+.tile[aria-pressed="true"] .roles { color: var(--muted); }
+
+/* inks */
+.ink { display: grid; grid-template-columns: 36px minmax(0,1fr) 96px; gap: 10px; align-items: center; margin-bottom: 8px; }
+.ink input[type=color] { width: 36px; height: 36px; border: 0; border-radius: 8px; padding: 0; background: var(--raise); cursor: pointer; }
+.ink input[type=color]::-webkit-color-swatch-wrapper { padding: 3px; }
+.ink input[type=color]::-webkit-color-swatch { border: 0; border-radius: 5px; }
+.ink .nm { font-weight: 500; font-size: 13px; }
+.ink input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; background: var(--raise); font-size: 13px; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.ramp { height: 6px; border-radius: 3px; margin: 4px 0 12px; }
+
+/* sliders */
+.ctl { margin-bottom: 14px; }
+.ctl:last-child { margin-bottom: 0; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 500; margin-bottom: 2px; }
+.ctl output { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+input[type=range] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 22px; margin: 0;
+  background: transparent; cursor: pointer; --fill: 50%;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--line) var(--fill));
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; margin-top: -6px;
+  background: var(--accent); border: 3px solid var(--bg);
+}
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line); }
+input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--accent); }
+input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); }
+select { width: 100%; padding: 8px 10px; border: 1px solid transparent; border-radius: 8px; background: var(--raise); }
+
+/* stage */
+.stagewrap {
+  position: relative; min-width: 0; min-height: 0; height: 100%; background-color: var(--stage); border-radius: 12px; color: var(--stage-ink);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.2px); background-size: 18px 18px; overflow: hidden;
+}
+#view { position: absolute; inset: 56px 28px; width: calc(100% - 56px); height: calc(100% - 112px); object-fit: contain; display: block; }
+.bar { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pill {
+  display: inline-flex; align-items: center; gap: 7px; background: var(--raise); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 13px; font-size: 13px; font-weight: 500; user-select: none;
+}
+button.pill:hover { border-color: var(--accent); }
+.status { position: absolute; left: 12px; bottom: 12px; right: 12px; font-size: 12.5px; display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none; }
+.status span { background: var(--bg); color: var(--muted); border-radius: 6px; padding: 4px 10px; }
+.veil {
+  position: absolute; inset: 12px; border: 2px dashed var(--stage-ink); border-radius: 10px; background: rgba(23, 19, 24, .08);
+  display: none; align-items: center; justify-content: center; font: 800 26px var(--display); letter-spacing: -.02em; color: var(--stage-ink);
+  z-index: 5; pointer-events: none;
+}
+.veil.on { display: flex; }
+
+@media (max-width: 820px) {
+  .app { display: flex; flex-direction: column; height: auto; min-height: 100%; }
+  .stagewrap { height: 52vh; height: 52svh; min-height: 300px; flex: none; }
+  .panel { overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <main class="stagewrap" id="stage">
+    <div class="bar"><button class="pill" id="compare" title="Hold to see the original" hidden>Hold to Compare</button></div>
+    <canvas id="view" aria-label="Processed image preview" hidden></canvas>
+    <div class="status" id="meta"></div>
+    <div class="veil" id="veil">Drop image to load it</div>
+  </main>
+
+  <aside class="panel">
+    <header class="top">
+      <h1>Image Treatment Generator</h1>
+      <p class="lede">A custom Seismic brand tool for turning photography into monotone and duotone treatments in the brand palette, with a posterized grain finish.</p>
+    </header>
+
+    <section class="blk">
+      <h2>Image</h2>
+      <div class="row"><button class="btn primary" id="pick">Choose Image</button></div>
+      <input id="file" type="file" accept="image/*" hidden>
+      <p class="hint">Or drop or paste an image anywhere on the page. JPG, PNG, WebP or GIF.</p>
+    </section>
+
+    <section class="blk">
+      <h2>Mode</h2>
+      <div class="seg" role="group" aria-label="Mode">
+        <button class="tile" id="m-mono" aria-pressed="false">Monotone</button>
+        <button class="tile" id="m-duo" aria-pressed="false">Duotone</button>
+      </div>
+    </section>
+
+    <section class="blk">
+      <h2>Presets</h2>
+      <div class="presets" id="presets"></div>
+      <p class="hint" id="preset-hint" style="margin:0">Choose Monotone or Duotone to see its presets.</p>
+    </section>
+
+    <section class="blk" id="sec-texture">
+      <h2>Texture</h2>
+      <div class="seg" role="group" aria-label="Monotone texture" id="mono-tex" style="margin-bottom:14px">
+        <button class="tile" id="t-smooth" aria-pressed="false">Color</button>
+        <button class="tile" id="t-poster" aria-pressed="true">Posterized</button>
+      </div>
+      <div class="ctl" id="grain-row">
+        <label for="s-grain">Grain <output id="o-grain">25</output></label>
+        <input id="s-grain" type="range" min="0" max="50" value="25">
+      </div>
+    </section>
+
+    <section class="blk">
+      <h2>Adjust</h2>
+      <div class="ctl">
+        <label for="s-bri">Brightness <output id="o-bri">0</output></label>
+        <input id="s-bri" type="range" min="-50" max="50" value="0">
+      </div>
+      <div class="ctl">
+        <label for="s-con">Contrast <output id="o-con">0</output></label>
+        <input id="s-con" type="range" min="-50" max="50" value="0">
+      </div>
+      <div class="row"><button class="btn" id="reset">Reset Adjustments</button></div>
+    </section>
+
+    <footer class="foot">
+      <div class="toast" id="note" role="status"></div>
+      <div class="row">
+        <select id="fmt" aria-label="Format">
+          <option value="png">PNG</option>
+          <option value="jpg">JPG (92%)</option>
+          <option value="webp">WebP</option>
+        </select>
+        <button class="btn primary" id="export" disabled>Export Image</button>
+      </div>
+    </footer>
+  </aside>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const PREVIEW_MAX = 1600;
+
+  // Seismic duotones: [name, shadow, highlight]
+  const DUO = [
+    ["Carbon + Sediment", "#171318", "#b8aa96"],
+    ["Sediment + Carbon", "#b8aa96", "#171318"],
+    ["Silt + Glacier", "#6e665a", "#94baf9"],
+    ["Signal + Silt", "#ccff89", "#6e665a"],
+    ["White + Glacier", "#ffffff", "#94baf9"],
+    ["Oxide + Glacier", "#a5412e", "#94baf9"] // Oxide sampled from the guideline swatch
+  ];
+  // Seismic neutrals
+  const MONO = [
+    ["Carbon", "#171318"], ["Shale", "#25221e"], ["Silt", "#6e665a"],
+    ["Sediment", "#b8aa96"], ["Chalk", "#d4ccc0"], ["Quartz", "#f1eeea"],
+    ["White", "#ffffff"]
+  ];
+
+  const state = {
+    mode: null, // nothing chosen until the viewer picks
+    a: DUO[0][1], b: DUO[0][2],
+    mono: MONO[3][1],
+    bri: 0, con: 0, grain: 25, // slider labels; see lvl() for the effect values
+    mid: 0, mix: 100, gsize: 2, detail: 50, // fixed
+    preset: { duo: null, mono: null }
+  };
+  const DEFAULTS = { bri: 0, con: 0, grain: 25 };
+  // Labels changed, effect unchanged: grain 0–50 → 30–70, brightness/contrast −50–50 → 0–50
+  const lvl = {
+    grain: () => 30 + state.grain * 0.8,
+    bri: () => (state.bri + 50) / 2,
+    con: () => (state.con + 50) / 2
+  };
+  state.monoTex = "poster";
+  const posterOn = () => state.mode === "duo" || state.monoTex === "poster";
+
+  let srcImg = null;      // full-res source (canvas or image)
+  let srcName = "sample";
+  let isSample = true;
+  let pw = 0, ph = 0;      // preview size
+  let lumPrev = null, origPrev = null;
+  const view = $("view"), vctx = view.getContext("2d", { willReadFrequently: true });
+
+  // ---------- colour helpers ----------
+  const hexToRgb = h => { h = h.replace("#", ""); if (h.length === 3) h = h.split("").map(c => c + c).join(""); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const rgbToHex = (r, g, b) => "#" + [r, g, b].map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
+  const validHex = s => /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.test(s.trim());
+  const normHex = s => { s = s.trim(); if (!s.startsWith("#")) s = "#" + s; const [r, g, b] = hexToRgb(s); return rgbToHex(r, g, b); };
+
+  // ---------- gradient-map LUT ----------
+  function stops() {
+    if (state.mode === "duo") return [[0, hexToRgb(state.a)], [1, hexToRgb(state.b)]];
+    // monotone: the ink plus black or white, whichever contrasts with it.
+    // Dark inks print on white; light inks sit as highlights over black.
+    const ink = hexToRgb(state.mono);
+    // smooth: handled by colorBlend() in buildLUT (Figma "Color" blend mode)
+    if (!posterOn()) return [[0, ink], [1, ink.map(v => 255 - v)]];
+    const light = (0.2126 * ink[0] + 0.7152 * ink[1] + 0.0722 * ink[2]) / 255 >= 0.5;
+    return light ? [[0, [0, 0, 0]], [1, ink]] : [[0, ink], [1, [255, 255, 255]]];
+  }
+  function toneLUT() { // luminance 0..255 -> tone 0..1 after brightness/contrast/midtones
+    const tone = new Float32Array(256);
+    // sliders read 0–50; they map onto the original effect ranges
+    // (brightness 60–100, contrast 20–60)
+    let bri, k;
+    if (posterOn()) {
+      bri = (60 + lvl.bri() * 0.8) / 100 * 0.5;
+      const c = (20 + lvl.con() * 0.8) / 100;
+      k = 1 + c * 2; // contrast factor
+    } else {
+      // smooth monotone works on the untouched photo: 25 = no change
+      bri = (lvl.bri() - 25) / 25 * 0.25;
+      k = 1 + (lvl.con() - 25) / 25 * 0.5;
+    }
+    const gamma = Math.pow(2, -state.mid / 50); // midtones: + brightens mids
+    for (let i = 0; i < 256; i++) {
+      let t = Math.pow(i / 255, gamma);
+      t = (t - 0.5) * k + 0.5 + bri;
+      tone[i] = Math.min(1, Math.max(0, t));
+    }
+    return tone;
+  }
+  // Figma / W3C "Color" blend: hue and saturation from the ink layer,
+  // luminosity from the black-and-white photo underneath.
+  function colorBlend(ink, l) {
+    const lum = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+    const d = l - lum(ink);
+    let c = ink.map(v => v + d);
+    const L = lum(c), n = Math.min(...c), x = Math.max(...c);
+    if (n < 0) c = c.map(v => L + (v - L) * L / (L - n));
+    if (x > 1) c = c.map(v => L + (v - L) * (1 - L) / (x - L));
+    return c.map(v => Math.round(Math.min(1, Math.max(0, v)) * 255));
+  }
+  function buildLUT() {
+    const s = stops();
+    const lut = new Uint8ClampedArray(256 * 3);
+    const tone = toneLUT();
+    if (state.mode === "mono" && !posterOn()) {
+      const ink = hexToRgb(state.mono).map(v => v / 255);
+      for (let i = 0; i < 256; i++) lut.set(colorBlend(ink, tone[i]), i * 3);
+      return lut;
+    }
+    for (let i = 0; i < 256; i++) {
+      const t = tone[i];
+      let j = 0; while (j < s.length - 2 && t > s[j + 1][0]) j++;
+      const [t0, c0] = s[j], [t1, c1] = s[j + 1];
+      const f = (t - t0) / (t1 - t0 || 1);
+      for (let ch = 0; ch < 3; ch++) lut[i * 3 + ch] = c0[ch] + (c1[ch] - c0[ch]) * f;
+    }
+    return lut;
+  }
+  function applyLUT(lum, orig, out, lut) {
+    const mix = state.mix / 100, inv = 1 - mix;
+    for (let p = 0, q = 0; p < lum.length; p++, q += 4) {
+      const l = lum[p] * 3;
+      if (mix === 1) {
+        out[q] = lut[l]; out[q + 1] = lut[l + 1]; out[q + 2] = lut[l + 2];
+      } else {
+        out[q] = lut[l] * mix + orig[q] * inv;
+        out[q + 1] = lut[l + 1] * mix + orig[q + 1] * inv;
+        out[q + 2] = lut[l + 2] * mix + orig[q + 2] * inv;
+      }
+      out[q + 3] = orig[q + 3];
+    }
+  }
+  // ---------- posterised texture ----------
+  // Sizes are in "units": 1 preview pixel, which maps to max(1, longSide/1600) source pixels,
+  // so grain and detail look the same in the preview and the full-res export.
+  function boxBlur(src, w, h, r) {
+    const tmp = new Float32Array(src.length), out = new Float32Array(src.length);
+    const pass = (a, b, len, n, stride, step) => {
+      for (let line = 0; line < n; line++) {
+        const base = line * stride; let acc = 0;
+        for (let i = -r; i <= r; i++) acc += a[base + Math.min(len - 1, Math.max(0, i)) * step];
+        for (let i = 0; i < len; i++) {
+          b[base + i * step] = acc / (2 * r + 1);
+          acc += a[base + Math.min(len - 1, i + r + 1) * step] - a[base + Math.max(0, i - r) * step];
+        }
+      }
+    };
+    let cur = src;
+    for (let it = 0; it < 2; it++) { // two box passes ≈ gaussian
+      pass(cur, tmp, w, h, w, 1);
+      pass(tmp, out, h, w, 1, w);
+      cur = out.slice();
+    }
+    return cur;
+  }
+  function hashNoise(x, y) {
+    let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) | 0;
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296 - 0.5;
+  }
+  function posterise(lum, blur, w, h, unitPx, orig, out) {
+    const tone = toneLUT();
+    const inks = stops().map(s => s[1]);
+    const n = inks.length;
+    const k = state.detail / 100 * 3;
+    const g = lvl.grain() / 100 * 0.9;
+    // diagonal streak grain: noise cells are long, thin and tilted (down-right),
+    // each lane of streaks offset randomly so the strikes don't line up
+    const cellW = unitPx * state.gsize * 0.75, cellL = cellW * 9;
+    const ca = Math.cos(STREAK_ANGLE), sa = Math.sin(STREAK_ANGLE);
+    const streak = (x, y) => {
+      const u = x * ca + y * sa, v = -x * sa + y * ca;
+      const lane = Math.floor(v / cellW);
+      const off = (hashNoise(lane, 977) + 0.5) * cellL;
+      return hashNoise(Math.floor((u + off) / cellL), lane);
+    };
+    const mix = state.mix / 100, inv = 1 - mix;
+    for (let y = 0, p = 0; y < h; y++) {
+      for (let x = 0; x < w; x++, p++) {
+        let l = lum[p];
+        if (k) { l = l + k * (l - blur[p]); l = l < 0 ? 0 : l > 255 ? 255 : l; }
+        const t = tone[l | 0] + (g ? g * streak(x, y) : 0);
+        const c = inks[t <= 0 ? 0 : Math.min(n - 1, (t * n) | 0)], q = p * 4;
+        if (mix === 1) { out[q] = c[0]; out[q + 1] = c[1]; out[q + 2] = c[2]; }
+        else { out[q] = c[0] * mix + orig[q] * inv; out[q + 1] = c[1] * mix + orig[q + 1] * inv; out[q + 2] = c[2] * mix + orig[q + 2] * inv; }
+        out[q + 3] = orig[q + 3];
+      }
+    }
+  }
+  const BLUR_R = 2; // detail radius in units
+  const STREAK_ANGLE = 58 * Math.PI / 180; // grain direction, measured down from horizontal
+  let blurPrev = null;
+
+  function lumOf(data) {
+    const n = data.length / 4, lum = new Uint8Array(n);
+    for (let p = 0, q = 0; p < n; p++, q += 4) lum[p] = (0.2126 * data[q] + 0.7152 * data[q + 1] + 0.0722 * data[q + 2]) | 0;
+    return lum;
+  }
+  function srcSize(img) { return [img.naturalWidth || img.width, img.naturalHeight || img.height]; }
+
+  // ---------- load ----------
+  function loadSource(img, name, sample) {
+    srcImg = img; srcName = name; isSample = sample;
+    const [w, h] = srcSize(img);
+    const sc = Math.min(1, PREVIEW_MAX / Math.max(w, h));
+    pw = Math.max(1, Math.round(w * sc)); ph = Math.max(1, Math.round(h * sc));
+    view.width = pw; view.height = ph;
+    vctx.clearRect(0, 0, pw, ph);
+    vctx.drawImage(img, 0, 0, pw, ph);
+    origPrev = vctx.getImageData(0, 0, pw, ph);
+    lumPrev = lumOf(origPrev.data);
+    blurPrev = boxBlur(Float32Array.from(lumPrev), pw, ph, BLUR_R);
+    view.hidden = false; $("compare").hidden = false; syncExport();
+    const st = $("meta"); st.innerHTML = "";
+    const add = t => { const e = document.createElement("span"); e.textContent = t; st.append(e); };
+    add(`${w} × ${h} px`);
+    render();
+  }
+  let frame = 0;
+  function render() {
+    if (!lumPrev) return;
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      if (!ready()) { vctx.putImageData(origPrev, 0, 0); return; } // untreated until a preset is picked
+      const out = vctx.createImageData(pw, ph);
+      if (posterOn()) posterise(lumPrev, blurPrev, pw, ph, 1, origPrev.data, out.data);
+      else applyLUT(lumPrev, origPrev.data, out.data, buildLUT());
+      vctx.putImageData(out, 0, 0);
+    });
+  }
+  function readFile(file) {
+    if (!file || !file.type.startsWith("image/")) { note("That file isn't an image. Try a JPG, PNG, WebP or GIF."); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { loadSource(img, file.name || "pasted image", false); };
+    img.onerror = () => note("Couldn't read that image. Try a different file.");
+    img.src = url;
+  }
+
+  // ---------- UI ----------
+  function note(t) { $("note").textContent = t; }
+  const ready = () => state.mode != null && state.preset[state.mode] != null;
+  function syncExport() {
+    $("export").disabled = !(srcImg && ready());
+    if (srcImg && !ready()) note(state.mode ? "Pick a preset to treat the image." : "Choose Monotone or Duotone, then a preset.");
+    else if (srcImg) note("Exports at the original resolution.");
+  }
+  function syncInks() {
+    const duo = state.mode === "duo";
+    $("sec-texture").hidden = !state.mode;
+    $("preset-hint").hidden = !!state.mode;
+    syncExport();
+    $("mono-tex").hidden = duo;
+    $("grain-row").hidden = !posterOn();
+    $("t-smooth").setAttribute("aria-pressed", String(state.monoTex === "smooth"));
+    $("t-poster").setAttribute("aria-pressed", String(state.monoTex === "poster"));
+    $("m-mono").setAttribute("aria-pressed", String(state.mode === "mono"));
+    $("m-duo").setAttribute("aria-pressed", String(duo));
+  }
+  function buildPresets() {
+    const box = $("presets"); box.innerHTML = "";
+    if (!state.mode) return;
+    const list = state.mode === "duo" ? DUO : MONO;
+    box.className = "presets " + state.mode;
+    list.forEach((p, i) => {
+      const b = document.createElement("button");
+      b.className = "tile";
+      const sw = document.createElement("span"); sw.className = "sw";
+      sw.style.background = state.mode === "duo"
+        ? `linear-gradient(90deg, ${p[1]} 50%, ${p[2]} 50%)`
+        : p[1];
+      const lab = document.createElement("span"); lab.textContent = p[0];
+      b.append(sw);
+      if (state.mode === "duo") { // which half is which
+        const roles = document.createElement("span"); roles.className = "roles";
+        roles.innerHTML = "<span>Shadow</span><span>Highlight</span>";
+        b.append(roles);
+      }
+      b.append(lab);
+      b.setAttribute("aria-pressed", String(state.preset[state.mode] === i));
+      b.onclick = () => {
+        if (state.mode === "duo") { state.a = p[1]; state.b = p[2]; } else state.mono = p[1];
+        state.preset[state.mode] = i; refresh();
+      };
+      box.append(b);
+    });
+  }
+  function refresh() { syncInks(); buildPresets(); render(); }
+  $("m-mono").onclick = () => { state.mode = "mono"; refresh(); };
+  $("m-duo").onclick = () => { state.mode = "duo"; refresh(); };
+  $("t-smooth").onclick = () => { state.monoTex = "smooth"; refresh(); };
+  $("t-poster").onclick = () => { state.monoTex = "poster"; refresh(); };
+  const sliders = ["bri", "con", "grain"];
+  const paintRange = el => el.style.setProperty("--fill", ((el.value - el.min) / (el.max - el.min) * 100) + "%");
+  sliders.forEach(k => {
+    const el = $("s-" + k);
+    paintRange(el);
+    el.addEventListener("input", e => { state[k] = +e.target.value; $("o-" + k).textContent = e.target.value; paintRange(el); render(); });
+  });
+  $("reset").onclick = () => {
+    Object.assign(state, DEFAULTS);
+    sliders.forEach(k => { const el = $("s-" + k); el.value = state[k]; $("o-" + k).textContent = state[k]; paintRange(el); });
+    render();
+  };
+
+  // compare (hold)
+  const showOrig = on => { if (!origPrev) return; if (on) vctx.putImageData(origPrev, 0, 0); else render(); };
+  const cmp = $("compare");
+  cmp.addEventListener("pointerdown", e => { e.preventDefault(); showOrig(true); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => cmp.addEventListener(ev, () => showOrig(false)));
+  cmp.addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); showOrig(true); } });
+  cmp.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") showOrig(false); });
+
+  // import: picker, drag-drop, paste
+  $("pick").onclick = () => $("file").click();
+  $("file").addEventListener("change", e => { readFile(e.target.files[0]); e.target.value = ""; });
+  const veil = $("veil");
+  ["dragenter", "dragover"].forEach(ev => window.addEventListener(ev, e => { e.preventDefault(); veil.classList.add("on"); }));
+  window.addEventListener("dragleave", e => { if (!e.relatedTarget) veil.classList.remove("on"); });
+  window.addEventListener("drop", e => { e.preventDefault(); veil.classList.remove("on"); readFile(e.dataTransfer.files[0]); });
+  window.addEventListener("paste", e => {
+    const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith("image/"));
+    if (item) readFile(item.getAsFile());
+  });
+
+  // ---------- export ----------
+  let downloads = null;
+  if (window.claude?.use) window.claude.use("downloads").then(d => { downloads = d; }).catch(() => {});
+
+  function renderFull(fmt) {
+    const [w, h] = srcSize(srcImg);
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d");
+    if (fmt === "jpg") { g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); }
+    g.drawImage(srcImg, 0, 0);
+    const id = g.getImageData(0, 0, w, h);
+    const orig = new Uint8ClampedArray(id.data);
+    const lum = lumOf(orig);
+    if (posterOn()) {
+      const unit = Math.max(1, Math.max(w, h) / PREVIEW_MAX);
+      const blur = state.detail ? boxBlur(Float32Array.from(lum), w, h, Math.max(1, Math.round(BLUR_R * unit))) : null;
+      posterise(lum, blur, w, h, unit, orig, id.data);
+    } else applyLUT(lum, orig, id.data, buildLUT());
+    g.putImageData(id, 0, 0);
+    const mime = { png: "image/png", jpg: "image/jpeg", webp: "image/webp" }[fmt];
+    return new Promise(res => c.toBlob(res, mime, 0.92));
+  }
+  $("export").onclick = async () => {
+    if (!srcImg || !ready()) return;
+    const fmt = $("fmt").value, btn = $("export");
+    btn.disabled = true; note("Rendering full resolution…");
+    try {
+      const blob = await renderFull(fmt);
+      const base = srcName.replace(/\.[^.]+$/, "").replace(/[^\w\- ]+/g, "").trim() || "image";
+      const filename = `${base}-${{ duo: "duotone", mono: "monotone" }[state.mode]}.${fmt}`;
+      if (!downloads) { // standalone file in a normal browser
+        const url = URL.createObjectURL(blob), a = document.createElement("a");
+        a.href = url; a.download = filename; document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        note(`Downloading ${filename}.`); return;
+      }
+      await downloads.save({ filename, data: blob });
+      note(`Saved ${filename}.`);
+    } catch (err) {
+      const code = err?.code;
+      note(code === "declined" ? "Export cancelled." :
+           code === "rate_limited" ? "A save prompt is already open. Finish that one first." :
+           "Export didn't go through. Try again, or pick a different format.");
+    } finally { btn.disabled = false; }
+  };
+
+  // boot
+  refresh();
+})();
+</script>
+
+</body>
+</html>
